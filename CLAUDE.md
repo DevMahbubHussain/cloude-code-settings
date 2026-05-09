@@ -75,8 +75,7 @@ Frontend bundle (`blocks/blocks/frontend.js` → `assets/js`) uses `@wordpress/i
 
 ## Adding a New Block (checklist)
 
-1. Setup & Registration
-
+### Setup & Registration
 1. Create blocks/blocks/<tier>/<name>/block.json (namespace: sp-smart-store/<name>).
 2. Add directory → key entry to BLOCK_MAPPING in scripts/generate-blocks-php.js.
 3. Run npm run build:blocks-php to generate the PHP registration array.
