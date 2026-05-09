@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code Smart Store Pro Plugin.
 
 ## Plugin Overview
 
@@ -75,33 +75,26 @@ Frontend bundle (`blocks/blocks/frontend.js` → `assets/js`) uses `@wordpress/i
 
 ## Adding a New Block (checklist)
 
-1. Create `blocks/blocks/<tier>/<name>/{block.json,index.jsx,edit.jsx,save.jsx,...}`.
-2. Add the import to `blocks/blocks/index.js`.
-3. Create the PHP class under `src/Blocks/<Tier>/<Name>/` extending `AbstractBlock` (or `AbstractAdvancedBlock`).
-4. Register the class in `BlockManager::register_all_blocks()`.
-5. Add the directory → key entry to `BLOCK_MAPPING` in `scripts/generate-blocks-php.js`.
-6. Run `npm run build:blocks-php` then `npm run build:blocks`.
+1. Setup & Registration
 
+1. Create blocks/blocks/<tier>/<name>/block.json (namespace: sp-smart-store/<name>).
+2. Add directory → key entry to BLOCK_MAPPING in scripts/generate-blocks-php.js.
+3. Run npm run build:blocks-php to generate the PHP registration array.
 
 ### Editor-Side Component (React / JavaScript)
-1. Location: Editor-side block definition folder
-2. Required: Use only the predefined components from /components folder.
-3. Example reference: See how Breadcrumb,ProductGrid,AdvancedTab block uses components from /components.
+1. Create blocks/blocks/<tier>/<name>/index.jsx (register block).
+2.  Add the import to blocks/blocks/index.js.
+3.  Create edit.jsx (editor view). Must use components from @woo-product-slider-pro/components and @woo-product-slider-pro/controls.
+4. Create save.jsx (static markup, or return null for dynamic blocks).
+5. Create dynamicCss.js (live editor CSS preview, scoped by uniqueId).
+6. Create inspectorControls.jsx and/or tabs.jsx if settings are complex.
+7. Create view.js if block has frontend interactivity (using @wordpress/interactivity).
+8. Example reference: See how Breadcrumb,ProductGrid,AdvancedTab block uses components from /components.
 
-###  Attributes Definition
-
-1. File: {BlockName}Attributes.php (e.g., BreadcrumbAttributes.php,ProductGridAttributes.php,AdvancedTabAttributes.php)
-2. Location: Same directory as other block attribute classes
-3. Content: Define all block attributes (title, alignment, colors, links, etc.) as class properties or structured arrays.
-
-### Attribute Generators (if needed)
-
-1. Check first: AttributeGenerators.php and CommonAttributes.php
-2. Rule: Reuse common attributes (spacing, colors, borders) from CommonAttributes.php. Only create new logic in AttributeGenerators.php if the attribute requires custom generation logic.
-
-### Server-Side Inline CSS Generator
-
-1. File: {BlockName}CssGenerator.php (e.g., BreadcrumbCssGenerator.php)
-2. Purpose: Generate inline CSS styles based on block attributes.
-3. Rule: Must accept attributes and output valid CSS string. Use existing CSS generator classes as a reference.
+###  Server Side (PHP)
+1. Create src/Blocks/<Tier>/<Name>/Block.php extending AbstractBlock or AbstractAdvancedBlock. Define $block_name and render() method.
+2. Register the class in BlockManager::register_all_blocks().
+3. Create {BlockName}Attributes.php. Reuse common attributes (spacing, colors, borders) from CommonAttributes.php. Only use 4. AttributeGenerators.php if custom logic is needed.
+5. Create {BlockName}CssGenerator.php. Must output valid CSS string identical to dynamicCss.js logic.
+6. Rule: Must accept attributes and output valid CSS string. Use existing CSS generator classes as a reference.
 
