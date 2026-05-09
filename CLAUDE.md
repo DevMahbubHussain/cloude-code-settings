@@ -96,4 +96,5 @@ Frontend bundle (`blocks/blocks/frontend.js` → `assets/js`) uses `@wordpress/i
 3. Create {BlockName}Attributes.php. Reuse common attributes (spacing, colors, borders) from CommonAttributes.php. Only use 4. AttributeGenerators.php if custom logic is needed.
 5. Create {BlockName}CssGenerator.php. Must output valid CSS string identical to dynamicCss.js logic.
 6. Rule: Must accept attributes and output valid CSS string. Use existing CSS generator classes as a reference.
+7. Example reference: See how Breadcrumb,ProductGrid,AdvancedTab do that.
 
