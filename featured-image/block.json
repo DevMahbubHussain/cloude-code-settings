@@ -1,0 +1,106 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "sp-smart-store/featured-image",
+	"title": "Featured Image",
+	"description": "Wrapper block for product image with additional styling options",
+	"category": "sp-smart-store-builder",
+	"ancestor": [
+		"sp-smart-store/all-products",
+		"sp-smart-store/single-product",
+		"sp-smart-store/product-template",
+		"core/post-template"
+	],
+	"usesContext": ["query", "queryId", "postId", "imageId", "uniqueId"],
+	"providesContext": {
+		"uniqueId": "uniqueId"
+	},
+	"keywords": ["WooCommerce", "product", "image", "featured", "wrapper"],
+	"textdomain": "woo-product-slider-pro",
+	"attributes": {
+		"uniqueId": {
+			"type": "string",
+			"default": ""
+		},
+		"productId": {
+			"type": "number",
+			"default": 0
+		},
+		"wrapperPadding": {
+			"type": "object",
+			"default": {
+				"desktop": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+				"tablet": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+				"mobile": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+			}
+		},
+		"wrapperPaddingUnit": {
+			"type": "string",
+			"default": "px"
+		},
+		"wrapperMargin": {
+			"type": "object",
+			"default": {
+				"desktop": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+				"tablet": { "top": 0, "right": 0, "bottom": 0, "left": 0 },
+				"mobile": { "top": 0, "right": 0, "bottom": 0, "left": 0 }
+			}
+		},
+		"wrapperMarginUnit": {
+			"type": "string",
+			"default": "px"
+		},
+		"wrapperBorder": {
+			"type": "object",
+			"default": {
+				"color": "",
+				"style": "solid",
+				"width": 0
+			}
+		},
+		"wrapperBorderRadius": {
+			"type": "object",
+			"default": {
+				"top": 0,
+				"right": 0,
+				"bottom": 0,
+				"left": 0
+			}
+		},
+		"wrapperBorderRadiusUnit": {
+			"type": "string",
+			"default": "px"
+		},
+		"wrapperBoxShadow": {
+			"type": "object",
+			"default": {
+				"enable": false,
+				"horizontal": 0,
+				"vertical": 0,
+				"blur": 0,
+				"spread": 0,
+				"color": "#000000",
+				"opacity": 0,
+				"inset": false
+			}
+		}
+	},
+	"supports": {
+		"html": false,
+		"align": ["wide", "full"]
+	},
+	"example": {
+		"attributes": {
+			"uniqueId": "featured-image-preview"
+		},
+		"viewportWidth": 400,
+		"innerBlocks": [
+			{
+				"name": "sp-smart-store/product-image",
+				"attributes": {
+					"isPreview": true
+				}
+			}
+		]
+	}
+}
