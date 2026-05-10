@@ -132,3 +132,350 @@ The Golden Rule
 For anything that touches 3+ files or involves new architecture → ALWAYS PLAN FIRST.
 
 The 2 minutes you spend reviewing a plan saves 20 minutes of undoing bad code.
+
+
+
+### Full Example 
+
+# Plan: WooCommerce Featured Image Block
+
+## Context
+
+Create a new `featured-image` block that serves as a wrapper/container for the existing `product-image` block. This allows reusing all product-image features (display styles, hover effects, slider, gallery, etc.) while providing a parent container with its own styling options. The block belongs to the Builder category and works in the same contexts as product-image (query loops, product templates, single product blocks).
+
+## Implementation Approach
+
+### 1. Create JavaScript Files (`blocks/blocks/builder/featured-image/`)
+
+**Files to create:**
+
+- `block.json` - Block metadata with:
+  - Name: `sp-smart-store/featured-image`
+  - Category: `sp-smart-store-builder`
+  - `ancestor`: Same as product-image (all-products, single-product, product-template, core/post-template)
+  - `usesContext`: ["query", "queryId", "postId", "imageId", "uniqueId"]
+  - `providesContext`: ["uniqueId"] - to pass uniqueId to child product-image
+  - Attributes: uniqueId, wrapper-specific settings (spacing, border, etc.)
+
+- `index.jsx` - Block registration, imports edit/save/metadata/icon
+
+- `edit.jsx` - Editor component:
+  - Uses `InnerBlocks` with `allowedBlocks: ['sp-smart-store/product-image']`
+  - Uses `useInnerBlocksProps` for the wrapper
+  - Provides context (uniqueId) to child blocks
+  - Includes inspector controls for wrapper-level styling
+  - Generates dynamic CSS for wrapper styles
+
+- `save.jsx` - Returns `null` (server-side rendering)
+
+- `icons.jsx` - Icon component (reuse or variant of product-image icon)
+
+- `dynamicCss.js` - Dynamic CSS generation for wrapper (padding, margin, border, etc.)
+
+- `inspectorControls/` - Inspector controls for wrapper settings:
+  - Spacing (padding, margin)
+  - Border (border, radius)
+  - Box shadow
+  - Maybe wrapper-level hover effects
+
+### 2. Create PHP Files (`src/Blocks/Builder/FeaturedImage/`)
+
+**Files to create:**
+
+- `FeaturedImage.php` - Main block class extending `AbstractBlock`:
+  - `$block_name = 'featured-image'`
+  - `$api_version = '3'`
+  - `get_block_specific_attributes()` - returns attributes from FeaturedImageAttributes
+  - `get_block_type_uses_context()` - returns ["query", "queryId", "postId", "imageId", "uniqueId"]
+  - `render()` - renders inner blocks content, applies wrapper styles
+
+- `FeaturedImageAttributes.php` - Attribute definitions:
+  - uniqueId
+  - Wrapper spacing (padding, margin) - responsive
+  - Wrapper border
+  - Wrapper border radius
+  - Wrapper box shadow
+  - (Inherit from CommonAttributes where possible)
+
+- `FeaturedImageCssGenerator.php` - PHP CSS generator matching dynamicCss.js
+
+- `render.php` - Render template (optional, can also render inline in FeaturedImage.php)
+
+### 3. Update Registration Files
+
+**Files to modify:**
+
+- `blocks/blocks/index.js` - Add import:
+  ```js
+  import './builder/featured-image/index.jsx';
+  ```
+
+- `src/Includes/BlockManager.php` - Add registration:
+  ```php
+  $this->register_block( 'ShapedPlugin\WooProductSliderPro\Blocks\Builder\FeaturedImage\FeaturedImage' );
+  ```
+
+- `scripts/generate-blocks-php.js` - Add to BLOCK_MAPPING:
+  ```js
+  'builder/featured-image': 'featured-image',
+  ```
+
+### 4. Build Steps
+
+After creating all files:
+
+```bash
+npm run build:blocks-php  # Generate src/Blocks/blocks.php
+npm run build:blocks      # Build JS bundle and styles
+```
+
+## Key Design Decisions
+
+1. **Inner Block Restriction**: Use `allowedBlocks: ['sp-smart-store/product-image']` in InnerBlocks config to restrict to only product-image
+
+2. **Context Passing**: The wrapper provides `uniqueId` to child product-image blocks via `providesContext`, ensuring CSS scoping works correctly
+
+3. **Template Lock**: Consider `templateLock: 'all'` or no lock depending on whether users should be able to remove the product-image inner block
+
+4. **Attribute Namespace**: Wrapper attributes should be prefixed to avoid conflicts (e.g., `wrapperPadding`, `wrapperBorder`)
+
+## Edge Cases to Handle
+
+### 1. Empty Inner Blocks
+**JS (edit.jsx):**
+```jsx
+const { innerBlocks } = useSelect(select =>
+  select(blockEditorStore).getBlocks(clientId)
+);
+const blockProps = useBlockProps({
+  className: clsx({
+    'spssp-featured-image-empty': !innerBlocks.length
+  })
+});
+// Show placeholder when empty
+{!innerBlocks.length && (
+  <div className="spssp-featured-image-placeholder">
+    {__('Add product-image block', 'woo-product-slider-pro')}
+  </div>
+)}
+```
+**PHP (FeaturedImage.php):**
+```php
+if (empty($content)) {
+    return is_admin() ? '<div class="spssp-featured-image-empty"></div>' : '';
+}
+```
+
+### 2. Missing Product Context
+**PHP:**
+```php
+$post_id = $block->context['postId'] ?? $attributes['productId'] ?? null;
+if (!$post_id && !is_admin()) {
+    return '';
+}
+```
+
+### 3. Standalone Usage (Outside Loops)
+**block.json:**
+```json
+"attributes": {
+  "productId": {"type": "number", "default": 0}
+}
+```
+**PHP:**
+```php
+$post_id = $block->context['postId'] ?? $attributes['productId'] ?? null;
+```
+
+### 4. UniqueId Conflicts
+**JS:**
+```jsx
+useUniqueId(uniqueId, setAttributes, 'spssp-fi-');
+```
+**PHP:**
+```php
+$unique_id = $attributes['uniqueId'] ?? uniqid('spssp-fi-');
+```
+
+### 5. Product Not Found / Deleted
+**PHP:**
+```php
+if ($post_id) {
+    $product = wc_get_product($post_id);
+    if (!$product) {
+        if (!is_admin()) return '';
+        return '<div class="notice">Product #' . $post_id . ' not found</div>';
+    }
+}
+```
+
+### 6. WooCommerce Not Installed
+**PHP:**
+```php
+if (!function_exists('wc_get_product')) {
+    return '';
+}
+```
+
+### 7. Product with No Featured Image
+**Behavior:** Wrapper still renders with correct dimensions, passes through placeholder from child product-image
+```php
+// product-image already handles wc_placeholder_img()
+// Wrapper just wraps whatever product-image returns
+```
+
+### 8. Image Loading State
+**JS:**
+```jsx
+const { product, isResolving } = useProduct(context?.postId);
+<Block {...props} isLoading={isResolving} product={product} />
+```
+```scss
+.spssp-featured-image-wrapper--loading .spssp-product-image {
+  @include skeleton-loader;
+}
+```
+
+### 8.5. Product ID Debugging
+**JS (edit.jsx) - Always log for confirmation:**
+```jsx
+const postId = context?.postId || attributes?.productId;
+const { product, isResolving } = useProduct(postId);
+
+// Debug: Always log to confirm product ID retrieval
+useEffect(() => {
+  console.log('FeaturedImage Block Debug:', {
+    blockName: 'featured-image',
+    contextPostId: context?.postId,
+    attributeProductId: attributes?.productId,
+    finalPostId: postId,
+    productFound: !!product,
+    productName: product?.name || 'N/A',
+    productId: product?.id || 'N/A',
+    isResolving,
+  });
+}, [postId, product, isResolving, context, attributes]);
+```
+
+This debug log runs on every render to confirm:
+- Context postId vs attribute productId
+- Final postId being used
+- Whether product was found
+- Product name and ID
+- Loading/resolving state
+
+### 9. Admin vs Frontend Rendering
+**PHP:**
+```php
+protected function render($attributes, $content, $block) {
+    if (is_admin()) {
+        // Render preview/placeholder
+        return $this->render_preview($attributes, $content, $block);
+    }
+    // Render actual content
+    return $this->render_frontend($attributes, $content, $block);
+}
+```
+
+### 10. Nested Wrappers (Prevent Self-Nesting)
+**block.json:**
+```json
+"ancestor": [
+  "sp-smart-store/all-products",
+  "sp-smart-store/single-product",
+  "sp-smart-store/product-template",
+  "core/post-template"
+]
+```
+
+### 11. Template Lock Bypass Protection
+**JS:**
+```jsx
+useEffect(() => {
+  if (innerBlocks.length === 0 ||
+      innerBlocks[0]?.name !== 'sp-smart-store/product-image') {
+    replaceInnerBlocks(clientId, [['sp-smart-store/product-image', {}]]);
+  }
+}, [innerBlocks, clientId, replaceInnerBlocks]);
+
+<InnerBlocks
+  allowedBlocks={['sp-smart-store/product-image']}
+  template={[['sp-smart-store/product-image', {}]]}
+  templateLock="all"
+/>
+```
+
+### 12. CSS Conflicts
+Prefix all wrapper styles to avoid conflict with product-image:
+```scss
+.spssp-featured-image-wrapper { /* wrapper */ }
+.spssp-product-image { /* child - unchanged */ }
+```
+
+### 13. Server/Client CSS Parity
+Ensure `dynamicCss.js` and `FeaturedImageCssGenerator.php` use identical:
+- Selector patterns
+- CSS property names
+- Value formats
+- Helper functions (use `CssHelper::get_spacing_value()` in PHP, match in JS)
+
+### 14. Editor Preview vs Frontend Differences
+**JS Editor Preview:**
+```jsx
+{!product && (
+  <div className="spssp-featured-image-preview">
+    <img src={placeholderSrc} alt={__('Preview', 'woo-product-slider-pro')} />
+  </div>
+)}
+```
+**PHP Frontend:** Always renders real product data, no preview mode needed
+
+**Context Handling:**
+```js
+// Editor: postId from block context or attributes
+const postId = context?.postId || attributes?.productId;
+```
+```php
+// Frontend: postId from WP_Block context
+$post_id = $block->context['postId'] ?? $attributes['productId'] ?? null;
+```
+
+## Verification
+
+### Basic Functionality
+1. Add the featured-image block to a product template or query loop
+2. Verify that only product-image can be added as inner block
+3. Verify that product-image child block inherits all its features (display styles, hover effects, etc.)
+4. Verify wrapper styling (padding, margin, border, shadow) applies correctly
+5. Verify uniqueId context passes to child for proper CSS scoping
+6. Test in different contexts: product grid, product carousel, single product page
+7. **Open browser console and verify debug log shows correct product ID retrieval**
+
+### Edge Case Testing
+7. **Empty inner blocks**: Verify placeholder shows in editor, returns empty on frontend
+8. **Missing context**: Test block outside query loop - should use productId attribute
+9. **Product not found**: Verify returns empty on frontend, shows notice in admin
+10. **No featured image**: Verify wrapper still renders with placeholder from product-image
+11. **WooCommerce disabled**: Verify block renders nothing without errors
+12. **Loading state**: Verify skeleton/placeholder shows while loading in editor
+13. **Self-nesting**: Verify cannot add featured-image inside another featured-image
+14. **Template lock**: Verify user cannot remove/add blocks inside wrapper
+15. **CSS parity**: Compare editor CSS output with frontend CSS output
+16. **Editor vs frontend**: Verify preview matches actual product render
+
+### Cross-Browser Testing
+17. Test in Chrome, Firefox, Safari, Edge
+18. Test on mobile devices (responsive wrapper styles)
+19. Test with various WooCommerce image sizes
+
+## Critical Files to Reference
+
+- `blocks/blocks/element/product-image/` - For understanding product-image structure and features
+- `blocks/blocks/builder/archive-title/` - For Builder block structure pattern
+- `blocks/blocks/showcase/smart-cart/` - For InnerBlocks wrapper pattern
+- `src/Blocks/Element/ProductImage/ProductImage.php` - For PHP block patterns
+- `src/Blocks/Builder/ArchiveTitle/ArchiveTitle.php` - For Builder PHP patterns
+
+
+
+
