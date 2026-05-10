@@ -1,0 +1,9 @@
+> "Analyze this entire repo and create:
+> 1. CLAUDE.md - with project overview, commands, critical rules
+> 2. .claude/skills.md - gutenberg block patterns, DS usage, nested blocks
+> 3. .claude/architecture.md - system architecture, data flow, block hierarchy
+> 4. .claude/conventions.md - coding standards, naming, file structure
+> 5. .claude/troubleshooting.md - known issues, common errors, fixes
+> 
+> Read every file in the repo first. Understand the full architecture.
+> Then write comprehensive documentation files."
