@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -f plan plan.md bugplan.md.txt standard.MD CLAUDE.md REFACTOR_PLAN.md)",
+      "Bash(ls -la *.md *.txt)"
+    ]
+  }
+}
