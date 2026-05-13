@@ -341,3 +341,289 @@ While Cursor and Claude Code usually ask for permission before writing to files,
     
 
 Once you verify it is obeying the **codex.md** instructions, you can trust it with more autonomy!
+
+
+
+
+
+
+
+
+
+Shorte Version
+==================
+# WordPress Gutenberg Block Development Standards
+
+> Absolute source of truth for all code generation, refactoring, and block creation in this plugin.
+
+---
+
+## Quick Reference
+
+| Category | Standard |
+|----------|----------|
+| **Min WP Version** | 6.0 |
+| **Min PHP Version** | 7.4 |
+| **Theme Support** | Block themes (theme.json) + Classic themes |
+| **Security** | Non-negotiable (see below) |
+
+---
+
+## Security Rules (Non-Negotiable)
+
+### Server-Side (PHP)
+
+```php
+// Direct access prevention
+defined('ABSPATH') || exit;
+
+// Input sanitization
+$text = sanitize_text_field($input);
+$html = wp_kses_post($content);
+$int = absint($value);
+$color = sanitize_hex_color($value);
+
+// Output escaping
+echo esc_html($text);
+echo esc_attr($class);
+echo esc_url($url);
+
+// Database - NO raw SQL
+$wpdb->prepare("SELECT * FROM {$wpdb->posts} WHERE ID = %d", $id);
+
+// Authorization
+if (!current_user_can('manage_options')) { return; }
+
+// CSRF protection
+if (!wp_verify_nonce($nonce, 'action_name')) { return; }
+```
+
+### Client-Side (JS)
+
+```jsx
+// NEVER use dangerouslySetInnerHTML with unsanitized content
+// ALWAYS validate attributes in save/render
+// NEVER inject user strings into href/src/event handlers without escaping
+```
+
+---
+
+## Architecture Standards
+
+### Component Design
+
+```jsx
+// Separation of concerns
+const useProductData = (productId) => { /* data fetching logic */ };
+
+// Component size limit: < 150 lines per file
+// State management: use @wordpress/data (useSelect, useDispatch)
+// Memoization: useMemo/useCallback with correct dependencies
+```
+
+### WordPress APIs
+
+```jsx
+// ALWAYS use @wordpress/* packages
+import { useSelect } from '@wordpress/data';
+import { useBlockProps } from '@wordpress/block-editor';
+import { __ } from '@wordpress/i18n';
+
+// NEVER use jQuery or direct DOM manipulation
+```
+
+### Block Props
+
+```jsx
+// Edit component
+const blockProps = useBlockProps();
+return <div {...blockProps}>...</div>;
+
+// Save component
+const saveProps = useBlockProps.save();
+return <div {...saveProps}>...</div>;
+
+// InnerBlocks
+const innerBlocksProps = useInnerBlockProps();
+<InnerBlocks {...innerBlocksProps} />
+```
+
+---
+
+## block.json Standards
+
+```json
+{
+  "name": "sp-smart-store/block-name",
+  "title": "Block Title",
+  "category": "smart-store-blocks",
+  "apiVersion": 3,
+  "attributes": {
+    "uniqueId": { "type": "string", "default": "" }
+  },
+  "supports": {
+    "html": false,
+    "align": true,
+    "spacing": {},
+    "color": {},
+    "typography": {}
+  }
+}
+```
+
+**Rules:**
+- Use native `supports` for spacing/colors/typography — NOT custom attributes
+- Define strict types with defaults for ALL attributes
+- Dynamic blocks: use `render` callback path
+- Script/style handles MUST match PHP registration
+
+---
+
+## CSS Standards
+
+```scss
+// BEM naming: wp-block-plugin-blockname__element--modifier
+.spssp-block {
+  &__element {
+    &--modifier {}
+  }
+}
+
+// No !important except WP editor conflicts
+.spssp-block { color: red; } // OK
+.spssp-block { color: red !important; } // Only for WP core overrides
+```
+
+### Responsive Rules
+
+```scss
+// Fluid typography/spacing using clamp()
+.element {
+  font-size: clamp(1rem, 2.5vw, 2rem);
+  padding: clamp(10px, 2vw, 30px);
+}
+
+// Breakpoints (mobile-first)
+.element {
+  padding: 10px; // Mobile
+
+  @media (min-width: 600px) { padding: 15px; }
+  @media (min-width: 782px) { padding: 20px; }
+  @media (min-width: 1024px) { padding: 30px; }
+}
+
+// Touch targets
+.button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+// CLS prevention: reserve space for async content
+.async-container {
+  aspect-ratio: 16/9; // or explicit height
+  min-height: 200px;
+}
+```
+
+---
+
+## PHP Coding Standards
+
+```php
+// Naming
+function myplugin_get_data() {} // snake_case
+class MyPlugin_Class {} // PascalCase
+const MYPLUGIN_CONST = 'value'; // UPPER_SNAKE_CASE
+
+// Docblocks
+/**
+ * Function description.
+ *
+ * @param string $param Description.
+ * @return string Description.
+ */
+function myplugin_function($param) {}
+
+// Yoda conditions
+if (true === $is_valid) {}
+
+// Strict typing
+declare(strict_types=1);
+function my_function(string $param): string {}
+```
+
+---
+
+## Edge Cases
+
+| Case | Handling |
+|-------|----------|
+| **Empty state** | Render placeholder in editor, return empty string on frontend |
+| **Long content** | `text-overflow: ellipsis;` or `overflow-wrap: break-word;` |
+| **API failure** | try/catch in fetch, show error state, don't crash |
+| **Zero/negative** | Validate numeric: `Math.max(1, parseInt(value))` |
+| **JS disabled** | Block must still render on frontend |
+
+---
+
+## Backward Compatibility
+
+```json
+// block.json deprecation
+{
+  "deprecated": [
+    {
+      "version": "2.0.0",
+      "replacement": "new-attribute-name",
+      "old": "old-attribute-name"
+    }
+  ]
+}
+```
+
+- No PHP 8+ features if min is 7.4 (named args, match expressions)
+- Provide base styles when theme.json absent
+- Work in classic theme widget areas
+
+---
+
+## AI Tool Setup
+
+### Cursor
+Add to `.cursorrules`:
+```text
+Always read and strictly follow STANDARDS.md before writing any code.
+```
+
+### Claude Code
+Add to `CLAUDE.md`:
+```text
+Read STANDARDS.md. This is your coding constitution.
+```
+
+### Codex
+Create `codex.md` in project root:
+```markdown
+You are an autonomous coding agent. Read STANDARDS.md before any code generation.
+```
+
+---
+
+## Audit Checklist
+
+When reviewing code, check:
+
+- [ ] `defined('ABSPATH') || exit;` on all PHP files
+- [ ] All inputs sanitized
+- [ ] All outputs escaped
+- [ ] `$wpdb->prepare()` for all queries
+- [ ] `current_user_can()` + `wp_verify_nonce()`
+- [ ] `@wordpress/*` packages only (no jQuery)
+- [ ] `useBlockProps()` used correctly
+- [ ] Native `supports` in block.json
+- [ ] BEM CSS naming
+- [ ] `clamp()` for fluid spacing
+- [ ] Min touch target 44×44px
+- [ ] CLS prevention for async content
+- [ ] Deprecated array for markup changes
+- [ ] Docblocks on all PHP functions/classes
